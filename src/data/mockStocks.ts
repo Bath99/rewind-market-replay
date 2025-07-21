@@ -18,94 +18,114 @@ export const mockStocks: Stock[] = [
   {
     symbol: "AAPL",
     name: "Apple Inc.",
-    price: 175.43,
+    price: 189.95,
     change: 2.34,
-    changePercent: 1.35,
+    changePercent: 1.25,
     market: "NASDAQ"
   },
   {
     symbol: "MSFT",
     name: "Microsoft Corporation",
-    price: 378.85,
-    change: -1.23,
-    changePercent: -0.32,
+    price: 415.26,
+    change: -3.12,
+    changePercent: -0.75,
     market: "NASDAQ"
   },
   {
     symbol: "GOOGL",
     name: "Alphabet Inc.",
-    price: 142.56,
-    change: 3.45,
-    changePercent: 2.48,
+    price: 139.69,
+    change: 1.85,
+    changePercent: 1.34,
     market: "NASDAQ"
   },
   {
     symbol: "TSLA",
     name: "Tesla, Inc.",
-    price: 238.77,
-    change: -8.32,
-    changePercent: -3.37,
+    price: 248.42,
+    change: -12.15,
+    changePercent: -4.66,
     market: "NASDAQ"
   },
   {
     symbol: "AMZN",
     name: "Amazon.com, Inc.",
-    price: 152.74,
-    change: 4.21,
-    changePercent: 2.84,
+    price: 178.32,
+    change: 5.67,
+    changePercent: 3.28,
     market: "NASDAQ"
   },
   {
     symbol: "JPM",
     name: "JPMorgan Chase & Co.",
-    price: 165.89,
-    change: 1.56,
-    changePercent: 0.95,
+    price: 184.75,
+    change: 2.18,
+    changePercent: 1.19,
     market: "NYSE"
   },
   {
     symbol: "BAC",
     name: "Bank of America Corporation",
-    price: 33.45,
-    change: -0.23,
-    changePercent: -0.68,
+    price: 37.82,
+    change: -0.45,
+    changePercent: -1.17,
     market: "NYSE"
   },
   {
     symbol: "JNJ",
     name: "Johnson & Johnson",
-    price: 158.23,
-    change: 0.87,
-    changePercent: 0.55,
+    price: 155.89,
+    change: 0.95,
+    changePercent: 0.61,
     market: "NYSE"
   }
 ];
 
-// Generate mock historical data for replay functionality
-export const generateHistoricalData = (symbol: string, days: number = 30): HistoricalDataPoint[] => {
+// Generate mock historical data for replay functionality with custom start date
+export const generateHistoricalData = (symbol: string, startDate: Date, days: number = 1): HistoricalDataPoint[] => {
   const stock = mockStocks.find(s => s.symbol === symbol);
   if (!stock) return [];
 
   const data: HistoricalDataPoint[] = [];
   const basePrice = stock.price;
-  const now = new Date();
   
-  for (let i = days * 24 * 60; i >= 0; i -= 5) { // Every 5 minutes
-    const timestamp = now.getTime() - (i * 60000);
-    const date = new Date(timestamp);
+  // Start from the beginning of the selected date
+  const startTimestamp = new Date(startDate).setHours(9, 30, 0, 0); // Market opens at 9:30 AM
+  const endTimestamp = startTimestamp + (days * 16 * 60 * 60 * 1000); // 16 hours of trading
+  
+  let currentTimestamp = startTimestamp;
+  let currentPrice = basePrice * (0.95 + Math.random() * 0.1); // Start with slight variation
+  
+  while (currentTimestamp <= endTimestamp) {
+    const date = new Date(currentTimestamp);
+    
+    // Skip weekends
+    if (date.getDay() === 0 || date.getDay() === 6) {
+      currentTimestamp += 60000; // Add 1 minute
+      continue;
+    }
+    
+    // Skip after market hours (before 9:30 AM or after 4:00 PM)
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    if (hour < 9 || (hour === 9 && minute < 30) || hour >= 16) {
+      currentTimestamp += 60000; // Add 1 minute
+      continue;
+    }
     
     // Generate realistic price movement
-    const volatility = 0.02; // 2% volatility
+    const volatility = 0.003; // 0.3% volatility per minute
     const randomChange = (Math.random() - 0.5) * 2 * volatility;
-    const trend = Math.sin(i / 1000) * 0.01; // Long-term trend
+    const timeBasedTrend = Math.sin(currentTimestamp / 10000000) * 0.001; // Very slight trend
     
-    const previousPrice = data.length > 0 ? data[data.length - 1].price : basePrice;
-    const newPrice = previousPrice * (1 + randomChange + trend);
+    currentPrice = currentPrice * (1 + randomChange + timeBasedTrend);
     
-    // Generate volume data
-    const baseVolume = 1000000;
-    const volumeVariation = Math.random() * 0.5 + 0.5; // 50-150% of base volume
-    const volume = Math.floor(baseVolume * volumeVariation);
+    // Generate volume data (higher volume during market open/close)
+    const marketMinute = (hour - 9) * 60 + minute - 30;
+    const totalMarketMinutes = 6.5 * 60; // 6.5 hours
+    const volumeMultiplier = Math.max(0.3, 1 - Math.abs(marketMinute - totalMarketMinutes / 2) / totalMarketMinutes);
+    const baseVolume = 50000 + Math.random() * 100000; // Random base volume
+    const volume = Math.floor(baseVolume * volumeMultiplier);
     
     data.push({
       time: date.toLocaleTimeString('en-US', { 
@@ -113,13 +133,15 @@ export const generateHistoricalData = (symbol: string, days: number = 30): Histo
         minute: '2-digit',
         hour12: false 
       }),
-      price: newPrice,
+      price: currentPrice,
       volume: volume,
-      timestamp: timestamp
+      timestamp: currentTimestamp
     });
+    
+    currentTimestamp += 60000; // Add 1 minute
   }
   
-  return data.reverse(); // Reverse to have chronological order
+  return data;
 };
 
 export const getStockBySymbol = (symbol: string): Stock | undefined => {

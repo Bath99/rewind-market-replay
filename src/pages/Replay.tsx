@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import Header from "@/components/Header";
 import StockChart from "@/components/StockChart";
 import ReplayControls from "@/components/ReplayControls";
+import { DatePicker } from "@/components/DatePicker";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,19 +16,20 @@ const Replay = () => {
   const initialSymbol = searchParams.get("symbol") || "AAPL";
   
   const [selectedStock, setSelectedStock] = useState(initialSymbol);
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
   const [currentDataIndex, setCurrentDataIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
-  // Load historical data when stock changes
+  // Load historical data when stock or date changes
   useEffect(() => {
-    const data = generateHistoricalData(selectedStock, 7); // 7 days of data
+    const data = generateHistoricalData(selectedStock, selectedDate, 1); // 1 day of data
     setHistoricalData(data);
     setCurrentDataIndex(0);
     setIsPlaying(false);
-  }, [selectedStock]);
+  }, [selectedStock, selectedDate]);
 
   // Handle URL parameter updates
   useEffect(() => {
@@ -128,7 +130,12 @@ const Replay = () => {
             </p>
           </div>
           
-          <div className="flex items-center gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+            <DatePicker 
+              date={selectedDate} 
+              onDateChange={(date) => date && setSelectedDate(date)} 
+            />
+            
             <Select value={selectedStock} onValueChange={handleStockChange}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Select a stock" />
