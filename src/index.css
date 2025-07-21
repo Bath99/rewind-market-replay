@@ -2,39 +2,63 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Financial trading platform design system */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Core financial app colors - dark theme */
+    --background: 220 13% 8%;
+    --foreground: 210 20% 92%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 220 15% 10%;
+    --card-foreground: 210 20% 92%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 220 15% 12%;
+    --popover-foreground: 210 20% 92%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Financial blue for primary actions */
+    --primary: 214 88% 58%;
+    --primary-foreground: 220 13% 8%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Muted backgrounds */
+    --secondary: 220 10% 15%;
+    --secondary-foreground: 210 20% 85%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 8% 18%;
+    --muted-foreground: 210 12% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 220 10% 20%;
+    --accent-foreground: 210 20% 90%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Financial red for losses */
+    --destructive: 0 75% 58%;
+    --destructive-foreground: 210 20% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Financial green for gains */
+    --success: 142 70% 45%;
+    --success-foreground: 210 20% 98%;
+
+    /* Borders and inputs */
+    --border: 220 10% 22%;
+    --input: 220 10% 18%;
+    --ring: 214 88% 58%;
+
+    /* Financial specific colors */
+    --chart-grid: 220 8% 25%;
+    --chart-positive: 142 70% 45%;
+    --chart-negative: 0 75% 58%;
+    --chart-neutral: 214 88% 58%;
+    
+    /* Gradients */
+    --gradient-financial: linear-gradient(135deg, hsl(214 88% 58%), hsl(142 70% 45%));
+    --gradient-dark: linear-gradient(180deg, hsl(220 15% 12%), hsl(220 13% 8%));
+    
+    /* Shadows */
+    --shadow-financial: 0 10px 30px -10px hsl(214 88% 58% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(220 13% 8% / 0.8);
+    
+    /* Animation */
+    --transition-financial: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --radius: 0.5rem;
 
