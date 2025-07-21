@@ -9,7 +9,10 @@ export interface Stock {
 
 export interface HistoricalDataPoint {
   time: string;
-  price: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
   volume: number;
   timestamp: number;
 }
@@ -81,20 +84,21 @@ export const mockStocks: Stock[] = [
   }
 ];
 
-// Generate mock historical data for replay functionality with custom start date
+// Generate realistic OHLC candlestick data
 export const generateHistoricalData = (symbol: string, startDate: Date, days: number = 1): HistoricalDataPoint[] => {
   const stock = mockStocks.find(s => s.symbol === symbol);
   if (!stock) return [];
 
   const data: HistoricalDataPoint[] = [];
-  const basePrice = stock.price;
+  // Use more realistic historical price (10-30% lower than current)
+  const historicalMultiplier = 0.7 + Math.random() * 0.2; // 70-90% of current price
+  let currentPrice = stock.price * historicalMultiplier;
   
   // Start from the beginning of the selected date
   const startTimestamp = new Date(startDate).setHours(9, 30, 0, 0); // Market opens at 9:30 AM
-  const endTimestamp = startTimestamp + (days * 16 * 60 * 60 * 1000); // 16 hours of trading
+  const endTimestamp = startTimestamp + (days * 6.5 * 60 * 60 * 1000); // 6.5 hours of trading
   
   let currentTimestamp = startTimestamp;
-  let currentPrice = basePrice * (0.95 + Math.random() * 0.1); // Start with slight variation
   
   while (currentTimestamp <= endTimestamp) {
     const date = new Date(currentTimestamp);
@@ -113,19 +117,34 @@ export const generateHistoricalData = (symbol: string, startDate: Date, days: nu
       continue;
     }
     
-    // Generate realistic price movement
-    const volatility = 0.003; // 0.3% volatility per minute
-    const randomChange = (Math.random() - 0.5) * 2 * volatility;
-    const timeBasedTrend = Math.sin(currentTimestamp / 10000000) * 0.001; // Very slight trend
+    // Generate realistic OHLC data
+    const open = currentPrice;
     
-    currentPrice = currentPrice * (1 + randomChange + timeBasedTrend);
+    // Generate price movements for the minute
+    const volatility = 0.002 + Math.random() * 0.003; // 0.2-0.5% volatility per minute
+    const trendBias = Math.sin(currentTimestamp / 20000000) * 0.001; // Very slight trend
     
-    // Generate volume data (higher volume during market open/close)
+    // Generate multiple price points within the minute to get high/low
+    const pricePoints = [];
+    let tempPrice = open;
+    
+    for (let i = 0; i < 4; i++) {
+      const randomChange = (Math.random() - 0.5) * 2 * volatility + trendBias;
+      tempPrice = tempPrice * (1 + randomChange);
+      pricePoints.push(tempPrice);
+    }
+    
+    const close = pricePoints[pricePoints.length - 1];
+    const high = Math.max(open, ...pricePoints);
+    const low = Math.min(open, ...pricePoints);
+    
+    // Generate volume data (higher volume during market open/close and on price movements)
     const marketMinute = (hour - 9) * 60 + minute - 30;
     const totalMarketMinutes = 6.5 * 60; // 6.5 hours
-    const volumeMultiplier = Math.max(0.3, 1 - Math.abs(marketMinute - totalMarketMinutes / 2) / totalMarketMinutes);
-    const baseVolume = 50000 + Math.random() * 100000; // Random base volume
-    const volume = Math.floor(baseVolume * volumeMultiplier);
+    const openCloseMultiplier = Math.max(0.3, 1 - Math.abs(marketMinute - totalMarketMinutes / 2) / totalMarketMinutes);
+    const priceChangeMultiplier = 1 + Math.abs((close - open) / open) * 10; // Higher volume on big moves
+    const baseVolume = 10000 + Math.random() * 50000;
+    const volume = Math.floor(baseVolume * openCloseMultiplier * priceChangeMultiplier);
     
     data.push({
       time: date.toLocaleTimeString('en-US', { 
@@ -133,15 +152,55 @@ export const generateHistoricalData = (symbol: string, startDate: Date, days: nu
         minute: '2-digit',
         hour12: false 
       }),
-      price: currentPrice,
+      open: open,
+      high: high,
+      low: low,
+      close: close,
       volume: volume,
       timestamp: currentTimestamp
     });
     
+    currentPrice = close; // Update current price for next candle
     currentTimestamp += 60000; // Add 1 minute
   }
   
   return data;
+};
+
+// Aggregate 1-minute data into different timeframes
+export const aggregateData = (data: HistoricalDataPoint[], timeframe: '1m' | '2m' | '5m'): HistoricalDataPoint[] => {
+  if (timeframe === '1m') return data;
+  
+  const intervalMinutes = timeframe === '2m' ? 2 : 5;
+  const aggregated: HistoricalDataPoint[] = [];
+  
+  for (let i = 0; i < data.length; i += intervalMinutes) {
+    const chunk = data.slice(i, i + intervalMinutes);
+    if (chunk.length === 0) continue;
+    
+    const open = chunk[0].open;
+    const close = chunk[chunk.length - 1].close;
+    const high = Math.max(...chunk.map(d => d.high));
+    const low = Math.min(...chunk.map(d => d.low));
+    const volume = chunk.reduce((sum, d) => sum + d.volume, 0);
+    const timestamp = chunk[0].timestamp;
+    
+    aggregated.push({
+      time: new Date(timestamp).toLocaleTimeString('en-US', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      }),
+      open,
+      high,
+      low,
+      close,
+      volume,
+      timestamp
+    });
+  }
+  
+  return aggregated;
 };
 
 export const getStockBySymbol = (symbol: string): Stock | undefined => {

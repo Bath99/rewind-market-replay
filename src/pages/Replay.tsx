@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { mockStocks, generateHistoricalData, getStockBySymbol } from "@/data/mockStocks";
+import { mockStocks, generateHistoricalData, getStockBySymbol, aggregateData } from "@/data/mockStocks";
 import type { HistoricalDataPoint } from "@/data/mockStocks";
 
 const Replay = () => {
@@ -18,9 +18,11 @@ const Replay = () => {
   const [selectedStock, setSelectedStock] = useState(initialSymbol);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [historicalData, setHistoricalData] = useState<HistoricalDataPoint[]>([]);
+  const [aggregatedData, setAggregatedData] = useState<HistoricalDataPoint[]>([]);
   const [currentDataIndex, setCurrentDataIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const [timeframe, setTimeframe] = useState<'1m' | '2m' | '5m'>('1m');
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   // Load historical data when stock or date changes
@@ -30,6 +32,14 @@ const Replay = () => {
     setCurrentDataIndex(0);
     setIsPlaying(false);
   }, [selectedStock, selectedDate]);
+
+  // Aggregate data when timeframe changes
+  useEffect(() => {
+    const aggregated = aggregateData(historicalData, timeframe);
+    setAggregatedData(aggregated);
+    setCurrentDataIndex(0);
+    setIsPlaying(false);
+  }, [historicalData, timeframe]);
 
   // Handle URL parameter updates
   useEffect(() => {
@@ -44,7 +54,7 @@ const Replay = () => {
 
     const newIntervalId = setInterval(() => {
       setCurrentDataIndex((prevIndex) => {
-        if (prevIndex >= historicalData.length - 1) {
+        if (prevIndex >= aggregatedData.length - 1) {
           setIsPlaying(false);
           return prevIndex;
         }
@@ -53,7 +63,7 @@ const Replay = () => {
     }, 1000 / speed);
 
     setIntervalId(newIntervalId);
-  }, [speed, historicalData.length, intervalId]);
+  }, [speed, aggregatedData.length, intervalId]);
 
   const stopReplay = useCallback(() => {
     if (intervalId) {
@@ -85,8 +95,12 @@ const Replay = () => {
   };
 
   const handleTimeChange = (newTime: number) => {
-    setCurrentDataIndex(Math.min(newTime, historicalData.length - 1));
+    setCurrentDataIndex(Math.min(newTime, aggregatedData.length - 1));
     setIsPlaying(false);
+  };
+
+  const handleTimeframeChange = (newTimeframe: '1m' | '2m' | '5m') => {
+    setTimeframe(newTimeframe);
   };
 
   const handleStockChange = (symbol: string) => {
@@ -94,9 +108,9 @@ const Replay = () => {
   };
 
   // Get current data for display
-  const currentData = historicalData.slice(0, currentDataIndex + 1);
-  const currentPoint = historicalData[currentDataIndex];
-  const previousPoint = historicalData[currentDataIndex - 1];
+  const currentData = aggregatedData.slice(0, currentDataIndex + 1);
+  const currentPoint = aggregatedData[currentDataIndex];
+  const previousPoint = aggregatedData[currentDataIndex - 1];
   const stock = getStockBySymbol(selectedStock);
 
   if (!stock || !currentPoint) {
@@ -112,8 +126,8 @@ const Replay = () => {
     );
   }
 
-  const currentPrice = currentPoint.price;
-  const priceChange = previousPoint ? currentPoint.price - previousPoint.price : 0;
+  const currentPrice = currentPoint.close;
+  const priceChange = previousPoint ? currentPoint.close - previousPoint.close : 0;
   const currentDate = new Date(currentPoint.timestamp).toLocaleDateString();
 
   return (
@@ -177,6 +191,8 @@ const Replay = () => {
               symbol={selectedStock}
               currentPrice={currentPrice}
               change={priceChange}
+              timeframe={timeframe}
+              onTimeframeChange={handleTimeframeChange}
             />
           </div>
 
@@ -198,6 +214,24 @@ const Replay = () => {
                 </div>
                 
                 <div className="space-y-2 text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">O:</span>
+                      <span className="font-mono">${currentPoint.open.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">H:</span>
+                      <span className="font-mono">${currentPoint.high.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">L:</span>
+                      <span className="font-mono">${currentPoint.low.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">C:</span>
+                      <span className="font-mono">${currentPoint.close.toFixed(2)}</span>
+                    </div>
+                  </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Volume:</span>
                     <span className="font-mono">{currentPoint.volume.toLocaleString()}</span>
@@ -223,8 +257,8 @@ const Replay = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Day's Range:</span>
                   <span className="font-mono">
-                    ${Math.min(...currentData.map(d => d.price)).toFixed(2)} - 
-                    ${Math.max(...currentData.map(d => d.price)).toFixed(2)}
+                    ${Math.min(...currentData.map(d => d.low)).toFixed(2)} - 
+                    ${Math.max(...currentData.map(d => d.high)).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -234,8 +268,12 @@ const Replay = () => {
                   </span>
                 </div>
                 <div className="flex justify-between">
+                  <span className="text-muted-foreground">Timeframe:</span>
+                  <span className="font-mono">{timeframe}</span>
+                </div>
+                <div className="flex justify-between">
                   <span className="text-muted-foreground">Data Points:</span>
-                  <span className="font-mono">{currentDataIndex + 1} / {historicalData.length}</span>
+                  <span className="font-mono">{currentDataIndex + 1} / {aggregatedData.length}</span>
                 </div>
               </CardContent>
             </Card>
@@ -250,7 +288,7 @@ const Replay = () => {
             speed={speed}
             onSpeedChange={handleSpeedChange}
             currentTime={currentDataIndex}
-            totalTime={historicalData.length - 1}
+            totalTime={aggregatedData.length - 1}
             onTimeChange={handleTimeChange}
             currentDate={currentDate}
           />
