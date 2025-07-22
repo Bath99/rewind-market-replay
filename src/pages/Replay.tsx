@@ -22,7 +22,7 @@ const Replay = () => {
   const [currentDataIndex, setCurrentDataIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [timeframe, setTimeframe] = useState<'1m' | '2m' | '5m'>('1m');
+  const [timeframe, setTimeframe] = useState<'1m' | '2m' | '5m' | '30m'>('1m');
   const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
 
   // Load historical data when stock or date changes
@@ -99,7 +99,7 @@ const Replay = () => {
     setIsPlaying(false);
   };
 
-  const handleTimeframeChange = (newTimeframe: '1m' | '2m' | '5m') => {
+  const handleTimeframeChange = (newTimeframe: '1m' | '2m' | '5m' | '30m') => {
     setTimeframe(newTimeframe);
   };
 

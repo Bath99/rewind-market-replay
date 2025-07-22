@@ -6,29 +6,29 @@
 
 @layer base {
   :root {
-    /* Pure black and white theme */
-    --background: 0 0% 0%;
-    --foreground: 0 0% 100%;
+    /* Clean white and black theme */
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
 
-    --card: 0 0% 5%;
-    --card-foreground: 0 0% 100%;
+    --card: 0 0% 98%;
+    --card-foreground: 0 0% 0%;
 
-    --popover: 0 0% 8%;
-    --popover-foreground: 0 0% 100%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
 
     /* Financial blue for primary actions */
     --primary: 214 88% 58%;
     --primary-foreground: 0 0% 0%;
 
-    /* Dark grays for secondary */
-    --secondary: 0 0% 15%;
-    --secondary-foreground: 0 0% 90%;
+    /* Light grays for secondary */
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
 
-    --muted: 0 0% 10%;
-    --muted-foreground: 0 0% 60%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 0 0% 20%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 15%;
 
     /* Financial red for losses */
     --destructive: 0 75% 58%;
@@ -39,12 +39,12 @@
     --success-foreground: 0 0% 100%;
 
     /* Borders and inputs */
-    --border: 0 0% 20%;
-    --input: 0 0% 10%;
+    --border: 0 0% 85%;
+    --input: 0 0% 100%;
     --ring: 214 88% 58%;
 
     /* Financial specific colors */
-    --chart-grid: 0 0% 25%;
+    --chart-grid: 0 0% 90%;
     --chart-positive: 142 70% 45%;
     --chart-negative: 0 75% 58%;
     --chart-neutral: 214 88% 58%;

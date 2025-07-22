@@ -33,6 +33,14 @@ const Header = () => {
                 Replay
               </Button>
             </Link>
+            <Link to="/news">
+              <Button 
+                variant={location.pathname === "/news" ? "default" : "ghost"} 
+                size="sm"
+              >
+                News & Events
+              </Button>
+            </Link>
           </nav>
         </div>
       </div>

@@ -168,10 +168,10 @@ export const generateHistoricalData = (symbol: string, startDate: Date, days: nu
 };
 
 // Aggregate 1-minute data into different timeframes
-export const aggregateData = (data: HistoricalDataPoint[], timeframe: '1m' | '2m' | '5m'): HistoricalDataPoint[] => {
+export const aggregateData = (data: HistoricalDataPoint[], timeframe: '1m' | '2m' | '5m' | '30m'): HistoricalDataPoint[] => {
   if (timeframe === '1m') return data;
   
-  const intervalMinutes = timeframe === '2m' ? 2 : 5;
+  const intervalMinutes = timeframe === '2m' ? 2 : timeframe === '5m' ? 5 : 30;
   const aggregated: HistoricalDataPoint[] = [];
   
   for (let i = 0; i < data.length; i += intervalMinutes) {

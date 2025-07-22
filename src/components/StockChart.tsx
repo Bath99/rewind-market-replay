@@ -16,8 +16,8 @@ interface StockChartProps {
   symbol: string;
   currentPrice: number;
   change: number;
-  timeframe: '1m' | '2m' | '5m';
-  onTimeframeChange: (timeframe: '1m' | '2m' | '5m') => void;
+  timeframe: '1m' | '2m' | '5m' | '30m';
+  onTimeframeChange: (timeframe: '1m' | '2m' | '5m' | '30m') => void;
 }
 
 const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframeChange }: StockChartProps) => {
@@ -104,6 +104,7 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
                 <SelectItem value="1m">1m</SelectItem>
                 <SelectItem value="2m">2m</SelectItem>
                 <SelectItem value="5m">5m</SelectItem>
+                <SelectItem value="30m">30m</SelectItem>
               </SelectContent>
             </Select>
           </div>
