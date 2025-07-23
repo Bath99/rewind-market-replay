@@ -1,6 +1,8 @@
+import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import ChartDrawingTools from "./ChartDrawingTools";
 
 interface ChartDataPoint {
   time: string;
@@ -22,6 +24,14 @@ interface StockChartProps {
 
 const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframeChange }: StockChartProps) => {
   const isPositive = change >= 0;
+  const [zoomLevel, setZoomLevel] = useState(1);
+  const [visibleDataRange, setVisibleDataRange] = useState({ start: 0, end: Math.max(data.length, 1) });
+  const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Update visible range when data changes
+  useEffect(() => {
+    setVisibleDataRange({ start: 0, end: Math.max(data.length, 1) });
+  }, [data.length]);
   
   const CustomCandlestick = (props: any) => {
     const { payload, x, y, width, height } = props;
@@ -73,25 +83,25 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
     
     return (
       <g>
-        {data.map((entry, index) => {
+        {visibleData.map((entry, index) => {
           const barWidth = 8; // Fixed width for candlesticks
-          const x = (index * (props.width / data.length)) + (props.width / data.length - barWidth) / 2;
+          const x = (index * (props.width / visibleData.length)) + (props.width / visibleData.length - barWidth) / 2;
           
           const isGreen = entry.close >= entry.open;
           const color = isGreen ? 'hsl(var(--chart-positive))' : 'hsl(var(--chart-negative))';
           
           // Calculate price range for scaling
-          const priceRange = Math.max(...data.map(d => d.high)) - Math.min(...data.map(d => d.low));
-          const minPrice = Math.min(...data.map(d => d.low));
+          const priceRange = Math.max(...visibleData.map(d => d.high)) - Math.min(...visibleData.map(d => d.low));
+          const minPrice = Math.min(...visibleData.map(d => d.low));
           
           // Scale to chart height (leave space for volume bars at bottom)
           const chartHeight = props.height * 0.7; // 70% for price, 30% for volume
           const yScale = chartHeight / priceRange;
           
-          const highY = props.y + (Math.max(...data.map(d => d.high)) - entry.high) * yScale;
-          const lowY = props.y + (Math.max(...data.map(d => d.high)) - entry.low) * yScale;
-          const openY = props.y + (Math.max(...data.map(d => d.high)) - entry.open) * yScale;
-          const closeY = props.y + (Math.max(...data.map(d => d.high)) - entry.close) * yScale;
+          const highY = props.y + (Math.max(...visibleData.map(d => d.high)) - entry.high) * yScale;
+          const lowY = props.y + (Math.max(...visibleData.map(d => d.high)) - entry.low) * yScale;
+          const openY = props.y + (Math.max(...visibleData.map(d => d.high)) - entry.open) * yScale;
+          const closeY = props.y + (Math.max(...visibleData.map(d => d.high)) - entry.close) * yScale;
           
           const bodyTop = Math.min(openY, closeY);
           const bodyHeight = Math.abs(openY - closeY);
@@ -163,9 +173,38 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
     );
   }
 
+  // Handle zoom functionality
+  const handleZoomIn = () => {
+    if (zoomLevel < 3) {
+      const newZoomLevel = Math.min(zoomLevel * 1.5, 3);
+      setZoomLevel(newZoomLevel);
+      updateVisibleRange(newZoomLevel);
+    }
+  };
+
+  const handleZoomOut = () => {
+    if (zoomLevel > 0.5) {
+      const newZoomLevel = Math.max(zoomLevel / 1.5, 0.5);
+      setZoomLevel(newZoomLevel);
+      updateVisibleRange(newZoomLevel);
+    }
+  };
+
+  const updateVisibleRange = (zoom: number) => {
+    const totalPoints = data.length;
+    const visiblePoints = Math.max(Math.floor(totalPoints / zoom), 10);
+    const centerPoint = Math.floor(totalPoints * 0.8); // Show recent data
+    const start = Math.max(0, centerPoint - Math.floor(visiblePoints / 2));
+    const end = Math.min(totalPoints, start + visiblePoints);
+    setVisibleDataRange({ start, end });
+  };
+
+  // Get visible data based on zoom level
+  const visibleData = data.slice(visibleDataRange.start, visibleDataRange.end);
+  
   // Prepare data for volume chart
-  const maxVolume = Math.max(...data.map(d => d.volume));
-  const chartData = data.map((d, index) => ({
+  const maxVolume = Math.max(...visibleData.map(d => d.volume));
+  const chartData = visibleData.map((d, index) => ({
     ...d,
     index,
     volumeHeight: (d.volume / maxVolume) * 100, // Percentage of max volume
@@ -200,7 +239,13 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div className="h-96 w-full relative">
+        <div ref={chartContainerRef} className="h-96 w-full relative">
+          <ChartDrawingTools
+            chartContainerRef={chartContainerRef}
+            onZoomIn={handleZoomIn}
+            onZoomOut={handleZoomOut}
+            zoomLevel={zoomLevel}
+          />
           {/* Price Chart with Candlesticks */}
           <div className="h-3/4 w-full">
             <ResponsiveContainer width="100%" height="100%">

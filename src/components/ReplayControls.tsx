@@ -40,7 +40,7 @@ const ReplayControls = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onSpeedChange(Math.max(0.5, speed - 0.5))}
+            onClick={() => onSpeedChange(Math.max(0.5, speed / 2))}
           >
             <Rewind className="h-4 w-4" />
           </Button>
@@ -57,7 +57,7 @@ const ReplayControls = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => onSpeedChange(Math.min(8, speed + 0.5))}
+            onClick={() => onSpeedChange(Math.min(8, speed * 2))}
           >
             <FastForward className="h-4 w-4" />
           </Button>

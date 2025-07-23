@@ -69,6 +69,8 @@ const Replay = () => {
   useEffect(() => {
     const loadHistoricalData = async () => {
       setIsLoading(true);
+      const currentTimePercentage = historicalData.length > 0 ? currentDataIndex / historicalData.length : 0;
+      
       try {
         const month = selectedDate.toISOString().slice(0, 7); // YYYY-MM format
         const interval = getAlphaVantageInterval(timeframe);
@@ -92,7 +94,9 @@ const Replay = () => {
         }
 
         setHistoricalData(convertedData);
-        setCurrentDataIndex(0);
+        // Maintain timeline position when changing timeframes
+        const newIndex = Math.floor(currentTimePercentage * convertedData.length);
+        setCurrentDataIndex(Math.min(newIndex, convertedData.length - 1));
         setIsPlaying(false);
 
         if (convertedData.length === 0) {
@@ -119,6 +123,8 @@ const Replay = () => {
             };
           });
           setHistoricalData(sampleData);
+          const newIndex = Math.floor(currentTimePercentage * sampleData.length);
+          setCurrentDataIndex(Math.min(newIndex, sampleData.length - 1));
         }
 
       } catch (error) {
@@ -146,6 +152,8 @@ const Replay = () => {
           };
         });
         setHistoricalData(sampleData);
+        const newIndex = Math.floor(currentTimePercentage * sampleData.length);
+        setCurrentDataIndex(Math.min(newIndex, sampleData.length - 1));
       } finally {
         setIsLoading(false);
       }
@@ -176,7 +184,7 @@ const Replay = () => {
     }, 1000 / speed);
 
     setIntervalId(newIntervalId);
-  }, [speed, historicalData.length, intervalId]);
+  }, [speed, historicalData.length]);
 
   const stopReplay = useCallback(() => {
     if (intervalId) {
@@ -197,7 +205,7 @@ const Replay = () => {
         clearInterval(intervalId);
       }
     };
-  }, [isPlaying, startReplay, stopReplay]);
+  }, [isPlaying, speed]);
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
