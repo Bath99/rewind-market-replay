@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Grid3X3, Maximize2 } from "lucide-react";
 import StockChart from "./StockChart";
-import TradingInterface from "./TradingInterface";
+import TradingInterfaceEnhanced from "./TradingInterfaceEnhanced";
 import type { HistoricalDataPoint } from "@/data/mockStocks";
 
 interface DualChartViewProps {
@@ -165,9 +165,10 @@ const DualChartView = ({
       </div>
 
       {/* Trading Interface */}
-      <TradingInterface
+      <TradingInterfaceEnhanced
         symbol={selectedChartForTrading === 'primary' ? primarySymbol : secondarySymbol || primarySymbol}
         currentPrice={selectedChartForTrading === 'primary' ? primaryPrice : secondaryPrice || primaryPrice}
+        chartId={selectedChartForTrading}
       />
     </div>
   );

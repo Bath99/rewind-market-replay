@@ -73,6 +73,44 @@ const ReplayEnhanced = () => {
     return aggregated;
   };
 
+  // Generate second-by-second price movement within each minute
+  const generateSecondBySecondData = (data: HistoricalDataPoint[]): HistoricalDataPoint[] => {
+    const detailedData: HistoricalDataPoint[] = [];
+    
+    data.forEach((point, index) => {
+      const startTime = new Date(point.timestamp);
+      const nextPoint = data[index + 1];
+      
+      // Generate 60 data points per minute (second by second)
+      for (let second = 0; second < 60; second++) {
+        const currentTime = new Date(startTime.getTime() + second * 1000);
+        const progress = second / 60;
+        
+        // Interpolate price movement throughout the minute
+        const priceRange = point.high - point.low;
+        const volatility = priceRange * 0.1; // 10% of the range for intra-minute movement
+        
+        // Create realistic price movement with random walk
+        const randomFactor = (Math.random() - 0.5) * volatility;
+        const trendFactor = nextPoint ? (nextPoint.open - point.close) * progress * 0.3 : 0;
+        
+        const currentPrice = point.open + (point.close - point.open) * progress + randomFactor + trendFactor;
+        
+        detailedData.push({
+          time: currentTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false }),
+          open: second === 0 ? point.open : detailedData[detailedData.length - 1]?.close || currentPrice,
+          high: Math.max(currentPrice, point.high - (1 - progress) * priceRange * 0.3),
+          low: Math.min(currentPrice, point.low + (1 - progress) * priceRange * 0.3),
+          close: currentPrice,
+          volume: Math.floor(point.volume / 60), // Distribute volume across seconds
+          timestamp: currentTime.getTime()
+        });
+      }
+    });
+    
+    return detailedData;
+  };
+
   // Load data for a specific stock and timeframe
   const loadStockData = async (symbol: string, timeframe: string): Promise<HistoricalDataPoint[]> => {
     try {
@@ -82,11 +120,17 @@ const ReplayEnhanced = () => {
       const alphaData = await fetchHistoricalData(symbol, interval as any, month);
       let convertedData = convertToHistoricalDataPoint(alphaData);
       
-      // Filter data for the selected date
+      // Filter for selected date and include pre-market (4:00 AM - 9:30 AM)
       const targetDate = selectedDate.toISOString().slice(0, 10);
       convertedData = convertedData.filter(point => {
         const pointDate = new Date(point.timestamp).toISOString().slice(0, 10);
-        return pointDate === targetDate;
+        const pointTime = new Date(point.timestamp);
+        const hour = pointTime.getHours();
+        const minute = pointTime.getMinutes();
+        
+        // Include pre-market (4:00 AM - 9:30 AM) and regular market hours
+        return pointDate === targetDate && 
+               ((hour >= 4 && hour < 9) || (hour === 9 && minute < 30) || (hour >= 9 && minute >= 30));
       });
 
       // Sort by timestamp (oldest first for replay)
@@ -97,14 +141,40 @@ const ReplayEnhanced = () => {
         convertedData = aggregateToTwoMinute(convertedData);
       }
 
+      // Generate detailed second-by-second data
+      if (convertedData.length > 0) {
+        convertedData = generateSecondBySecondData(convertedData);
+      }
+
       if (convertedData.length === 0) {
-        // Fall back to sample data
-        const sampleData: HistoricalDataPoint[] = Array.from({ length: 50 }, (_, i) => {
-          const basePrice = 150 + Math.random() * 100;
+        // Fall back to sample data with pre-market
+        const sampleData: HistoricalDataPoint[] = [];
+        const basePrice = 150 + Math.random() * 100;
+        
+        // Pre-market data (4:00 AM - 9:30 AM)
+        for (let i = 0; i < 330; i++) { // 5.5 hours * 60 minutes
           const time = new Date(selectedDate);
-          time.setHours(9, 30 + i * (timeframe === '30m' ? 30 : timeframe === '5m' ? 5 : timeframe === '2m' ? 2 : 1), 0, 0);
+          time.setHours(4, i, 0, 0);
           
-          return {
+          if (time.getHours() === 9 && time.getMinutes() >= 30) break;
+          
+          sampleData.push({
+            time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+            open: basePrice + (Math.random() - 0.5) * 2,
+            high: basePrice + Math.random() * 3,
+            low: basePrice - Math.random() * 3,
+            close: basePrice + (Math.random() - 0.5) * 2,
+            volume: Math.floor(50000 + Math.random() * 100000), // Lower pre-market volume
+            timestamp: time.getTime()
+          });
+        }
+        
+        // Regular market hours starting at 9:30 AM
+        for (let i = 0; i < 390; i++) { // 6.5 hours * 60 minutes
+          const time = new Date(selectedDate);
+          time.setHours(9, 30 + i, 0, 0);
+          
+          sampleData.push({
             time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
             open: basePrice + (Math.random() - 0.5) * 2,
             high: basePrice + Math.random() * 3,
@@ -112,22 +182,25 @@ const ReplayEnhanced = () => {
             close: basePrice + (Math.random() - 0.5) * 2,
             volume: Math.floor(100000 + Math.random() * 500000),
             timestamp: time.getTime()
-          };
-        });
-        return sampleData;
+          });
+        }
+        
+        return generateSecondBySecondData(sampleData);
       }
 
       return convertedData;
     } catch (error) {
       console.error(`Error loading ${symbol} data:`, error);
       
-      // Fall back to sample data
-      const sampleData: HistoricalDataPoint[] = Array.from({ length: 50 }, (_, i) => {
-        const basePrice = 150 + Math.random() * 100;
+      // Fall back to sample data with detailed structure
+      const sampleData: HistoricalDataPoint[] = [];
+      const basePrice = 150 + Math.random() * 100;
+      
+      for (let i = 0; i < 100; i++) {
         const time = new Date(selectedDate);
-        time.setHours(9, 30 + i * (timeframe === '30m' ? 30 : timeframe === '5m' ? 5 : timeframe === '2m' ? 2 : 1), 0, 0);
+        time.setHours(9, 30 + i, 0, 0);
         
-        return {
+        sampleData.push({
           time: time.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
           open: basePrice + (Math.random() - 0.5) * 2,
           high: basePrice + Math.random() * 3,
@@ -135,9 +208,10 @@ const ReplayEnhanced = () => {
           close: basePrice + (Math.random() - 0.5) * 2,
           volume: Math.floor(100000 + Math.random() * 500000),
           timestamp: time.getTime()
-        };
-      });
-      return sampleData;
+        });
+      }
+      
+      return generateSecondBySecondData(sampleData);
     }
   };
 

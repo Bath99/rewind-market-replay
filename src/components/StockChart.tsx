@@ -249,12 +249,17 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
       <CardContent className="p-0">
         <div 
           ref={chartContainerRef} 
-          className={`h-96 w-full relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
+          className="h-96 w-full relative resize-y min-h-64 max-h-[800px] overflow-hidden"
         >
+          {/* Chart drag overlay - only active when not using drawing tools */}
+          <div 
+            className={`absolute inset-0 ${isDragging ? 'cursor-grabbing' : 'cursor-grab'} z-10`}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            style={{ pointerEvents: 'auto' }}
+          />
           <ChartDrawingTools
             chartContainerRef={chartContainerRef}
             onZoomIn={handleZoomIn}

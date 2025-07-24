@@ -166,21 +166,46 @@ const ChartDrawingTools = ({
         </div>
       </div>
 
-      {/* Drawing Overlay */}
-      {chartContainerRef.current && (
+      {/* Drawing Overlay - Only capture events when drawing tools are active */}
+      {chartContainerRef.current && activeTool !== 'select' && (
         <svg
           ref={svgRef}
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0"
           style={{
             width: chartContainerRef.current.clientWidth,
             height: chartContainerRef.current.clientHeight,
-            pointerEvents: activeTool !== 'select' ? 'auto' : 'none'
+            pointerEvents: 'auto',
+            zIndex: 50
           }}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
         >
           {allLines.map((line) => (
+            <line
+              key={line.id}
+              x1={line.startX}
+              y1={line.startY}
+              x2={line.endX}
+              y2={line.endY}
+              stroke={line.color}
+              strokeWidth={2}
+              strokeDasharray={line.type === 'horizontal' ? '5,5' : undefined}
+            />
+          ))}
+        </svg>
+      )}
+      
+      {/* Display existing lines when not actively drawing */}
+      {chartContainerRef.current && activeTool === 'select' && (
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            width: chartContainerRef.current.clientWidth,
+            height: chartContainerRef.current.clientHeight
+          }}
+        >
+          {lines.map((line) => (
             <line
               key={line.id}
               x1={line.startX}
