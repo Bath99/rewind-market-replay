@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Minus, TrendingUp, ZoomIn, ZoomOut, Eraser, RotateCcw } from "lucide-react";
+import { useDrawingPersistence } from "@/hooks/useDrawingPersistence";
 
 interface DrawingLine {
   id: string;
@@ -19,16 +20,20 @@ interface ChartDrawingToolsProps {
   onZoomIn: () => void;
   onZoomOut: () => void;
   zoomLevel: number;
+  symbol: string;
+  timeframe: string;
 }
 
 const ChartDrawingTools = ({ 
   chartContainerRef, 
   onZoomIn, 
   onZoomOut, 
-  zoomLevel 
+  zoomLevel,
+  symbol,
+  timeframe
 }: ChartDrawingToolsProps) => {
   const [activeTool, setActiveTool] = useState<'select' | 'trend' | 'horizontal'>('select');
-  const [lines, setLines] = useState<DrawingLine[]>([]);
+  const { lines, addLine, removeLine, clearLines } = useDrawingPersistence(symbol, timeframe);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentLine, setCurrentLine] = useState<DrawingLine | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -74,14 +79,14 @@ const ChartDrawingTools = ({
 
   const handleMouseUp = () => {
     if (currentLine && isDrawing) {
-      setLines(prev => [...prev, currentLine]);
+      addLine(currentLine);
       setCurrentLine(null);
     }
     setIsDrawing(false);
   };
 
-  const clearLines = () => {
-    setLines([]);
+  const handleClearLines = () => {
+    clearLines();
     setCurrentLine(null);
   };
 
@@ -124,7 +129,7 @@ const ChartDrawingTools = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={clearLines}
+            onClick={handleClearLines}
             className="h-8 w-8 p-0"
           >
             <Eraser className="h-4 w-4" />

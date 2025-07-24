@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import ChartDrawingTools from "./ChartDrawingTools";
+import { useChartDrag } from "@/hooks/useChartDrag";
 
 interface ChartDataPoint {
   time: string;
@@ -27,6 +28,13 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
   const [zoomLevel, setZoomLevel] = useState(1);
   const [visibleDataRange, setVisibleDataRange] = useState({ start: 0, end: Math.max(data.length, 1) });
   const chartContainerRef = useRef<HTMLDivElement>(null);
+
+  // Chart drag functionality
+  const { isDragging, handleMouseDown, handleMouseMove, handleMouseUp } = useChartDrag({
+    totalDataLength: data.length,
+    visibleDataRange,
+    onRangeChange: (start, end) => setVisibleDataRange({ start, end })
+  });
 
   // Update visible range when data changes
   useEffect(() => {
@@ -239,12 +247,21 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
         </div>
       </CardHeader>
       <CardContent className="p-0">
-        <div ref={chartContainerRef} className="h-96 w-full relative">
+        <div 
+          ref={chartContainerRef} 
+          className={`h-96 w-full relative ${isDragging ? 'cursor-grabbing' : 'cursor-grab'}`}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+        >
           <ChartDrawingTools
             chartContainerRef={chartContainerRef}
             onZoomIn={handleZoomIn}
             onZoomOut={handleZoomOut}
             zoomLevel={zoomLevel}
+            symbol={symbol}
+            timeframe={timeframe}
           />
           {/* Price Chart with Candlesticks */}
           <div className="h-3/4 w-full">

@@ -41,6 +41,14 @@ const Header = () => {
                 News & Events
               </Button>
             </Link>
+            <Link to="/lessons">
+              <Button 
+                variant={location.pathname === "/lessons" ? "default" : "ghost"} 
+                size="sm"
+              >
+                Lessons
+              </Button>
+            </Link>
           </nav>
         </div>
       </div>
