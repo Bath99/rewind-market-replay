@@ -267,6 +267,7 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
             zoomLevel={zoomLevel}
             symbol={symbol}
             timeframe={timeframe}
+            chartId="main"
           />
           {/* Price Chart with Candlesticks */}
           <div className="h-3/4 w-full">

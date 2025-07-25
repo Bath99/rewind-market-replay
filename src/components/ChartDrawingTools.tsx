@@ -22,6 +22,9 @@ interface ChartDrawingToolsProps {
   zoomLevel: number;
   symbol: string;
   timeframe: string;
+  chartId: string;
+  persistAcrossTimeframes?: boolean;
+  onToolChange?: (tool: 'select' | 'trend' | 'horizontal') => void;
 }
 
 const ChartDrawingTools = ({ 
@@ -30,16 +33,27 @@ const ChartDrawingTools = ({
   onZoomOut, 
   zoomLevel,
   symbol,
-  timeframe
+  timeframe,
+  chartId,
+  persistAcrossTimeframes = true,
+  onToolChange
 }: ChartDrawingToolsProps) => {
   const [activeTool, setActiveTool] = useState<'select' | 'trend' | 'horizontal'>('select');
-  const { lines, addLine, removeLine, clearLines } = useDrawingPersistence(symbol, timeframe);
+  const { lines, addLine, removeLine, clearLines } = useDrawingPersistence(symbol, timeframe, chartId, persistAcrossTimeframes);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentLine, setCurrentLine] = useState<DrawingLine | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
 
+  // Notify parent component of tool changes
+  useEffect(() => {
+    onToolChange?.(activeTool);
+  }, [activeTool, onToolChange]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (activeTool === 'select') return;
+    
+    e.preventDefault();
+    e.stopPropagation();
     
     const rect = chartContainerRef.current?.getBoundingClientRect();
     if (!rect) return;
@@ -64,6 +78,9 @@ const ChartDrawingTools = ({
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDrawing || !currentLine) return;
     
+    e.preventDefault();
+    e.stopPropagation();
+    
     const rect = chartContainerRef.current?.getBoundingClientRect();
     if (!rect) return;
 
@@ -77,8 +94,10 @@ const ChartDrawingTools = ({
     });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = (e: React.MouseEvent) => {
     if (currentLine && isDrawing) {
+      e.preventDefault();
+      e.stopPropagation();
       addLine(currentLine);
       setCurrentLine(null);
     }
@@ -166,20 +185,21 @@ const ChartDrawingTools = ({
         </div>
       </div>
 
-      {/* Drawing Overlay - Only capture events when drawing tools are active */}
-      {chartContainerRef.current && activeTool !== 'select' && (
+      {/* Drawing Overlay - Always show lines, only capture events when drawing tools are active */}
+      {chartContainerRef.current && (
         <svg
           ref={svgRef}
           className="absolute inset-0"
           style={{
             width: chartContainerRef.current.clientWidth,
             height: chartContainerRef.current.clientHeight,
-            pointerEvents: 'auto',
-            zIndex: 50
+            pointerEvents: activeTool !== 'select' ? 'auto' : 'none',
+            zIndex: activeTool !== 'select' ? 50 : 5
           }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
+          onMouseDown={activeTool !== 'select' ? handleMouseDown : undefined}
+          onMouseMove={activeTool !== 'select' ? handleMouseMove : undefined}
+          onMouseUp={activeTool !== 'select' ? handleMouseUp : undefined}
+          onMouseLeave={() => setIsDrawing(false)}
         >
           {allLines.map((line) => (
             <line
@@ -191,30 +211,7 @@ const ChartDrawingTools = ({
               stroke={line.color}
               strokeWidth={2}
               strokeDasharray={line.type === 'horizontal' ? '5,5' : undefined}
-            />
-          ))}
-        </svg>
-      )}
-      
-      {/* Display existing lines when not actively drawing */}
-      {chartContainerRef.current && activeTool === 'select' && (
-        <svg
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            width: chartContainerRef.current.clientWidth,
-            height: chartContainerRef.current.clientHeight
-          }}
-        >
-          {lines.map((line) => (
-            <line
-              key={line.id}
-              x1={line.startX}
-              y1={line.startY}
-              x2={line.endX}
-              y2={line.endY}
-              stroke={line.color}
-              strokeWidth={2}
-              strokeDasharray={line.type === 'horizontal' ? '5,5' : undefined}
+              style={{ pointerEvents: 'none' }}
             />
           ))}
         </svg>
