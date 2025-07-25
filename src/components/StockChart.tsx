@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { ComposedChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Area, AreaChart } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import ChartDrawingTools from "./ChartDrawingTools";
 import { useChartDrag } from "@/hooks/useChartDrag";
+import CryptoChart from "./CryptoChart";
 
 interface ChartDataPoint {
   time: string;
@@ -27,6 +29,7 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
   const isPositive = change >= 0;
   const [zoomLevel, setZoomLevel] = useState(1);
   const [visibleDataRange, setVisibleDataRange] = useState({ start: 0, end: Math.max(data.length, 1) });
+  const [chartType, setChartType] = useState<'tradingview' | 'candlestick' | 'line'>('tradingview');
   const chartContainerRef = useRef<HTMLDivElement>(null);
 
   // Chart drag functionality
@@ -218,6 +221,91 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
     volumeHeight: (d.volume / maxVolume) * 100, // Percentage of max volume
   }));
 
+  // Chart configuration for the new chart UI system
+  const chartConfig = {
+    price: {
+      label: "Price",
+      color: "hsl(var(--chart-1))",
+    },
+    volume: {
+      label: "Volume",
+      color: "hsl(var(--chart-2))",
+    },
+    high: {
+      label: "High",
+      color: "hsl(var(--chart-positive))",
+    },
+    low: {
+      label: "Low", 
+      color: "hsl(var(--chart-negative))",
+    }
+  };
+
+  const tradingViewSymbol = symbol.replace('.', ':');
+
+  const renderTradingViewChart = () => (
+    <div className="h-full w-full">
+      <CryptoChart
+        symbol={`NASDAQ:${tradingViewSymbol}`}
+        width="100%"
+        height="100%"
+        interval={timeframe === '1m' ? '1' : timeframe === '5m' ? '5' : '30'}
+        theme="dark"
+        style="1"
+        hide_top_toolbar={false}
+        hide_legend={false}
+        hide_volume={false}
+        allow_symbol_change={true}
+        container_id={`tradingview-${symbol}-${timeframe}`}
+      />
+    </div>
+  );
+
+  const renderLineChart = () => (
+    <ChartContainer config={chartConfig} className="h-full w-full">
+      <ResponsiveContainer width="100%" height="100%">
+        <AreaChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+          <defs>
+            <linearGradient id="colorPrice" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="hsl(var(--chart-1))" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="hsl(var(--chart-1))" stopOpacity={0}/>
+            </linearGradient>
+          </defs>
+          <CartesianGrid 
+            strokeDasharray="3 3" 
+            stroke="hsl(var(--chart-grid))" 
+            opacity={0.3}
+          />
+          <XAxis 
+            dataKey="time" 
+            stroke="hsl(var(--muted-foreground))"
+            fontSize={10}
+            tickLine={false}
+            axisLine={false}
+            height={20}
+          />
+          <YAxis 
+            stroke="hsl(var(--muted-foreground))"
+            fontSize={12}
+            tickLine={false}
+            axisLine={false}
+            domain={['dataMin - 0.5', 'dataMax + 0.5']}
+            tickFormatter={(value) => `$${value.toFixed(2)}`}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area 
+            type="monotone" 
+            dataKey="close" 
+            stroke="hsl(var(--chart-1))" 
+            fillOpacity={1} 
+            fill="url(#colorPrice)"
+            strokeWidth={2}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </ChartContainer>
+  );
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-4">
@@ -233,6 +321,16 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
                 <SelectItem value="2m">2m</SelectItem>
                 <SelectItem value="5m">5m</SelectItem>
                 <SelectItem value="30m">30m</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={chartType} onValueChange={(value: 'tradingview' | 'candlestick' | 'line') => setChartType(value)}>
+              <SelectTrigger className="w-32 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="tradingview">TradingView</SelectItem>
+                <SelectItem value="candlestick">Candlestick</SelectItem>
+                <SelectItem value="line">Line Chart</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -260,135 +358,152 @@ const StockChart = ({ data, symbol, currentPrice, change, timeframe, onTimeframe
             onMouseLeave={handleMouseUp}
             style={{ pointerEvents: 'auto' }}
           />
-          <ChartDrawingTools
-            chartContainerRef={chartContainerRef}
-            onZoomIn={handleZoomIn}
-            onZoomOut={handleZoomOut}
-            zoomLevel={zoomLevel}
-            symbol={symbol}
-            timeframe={timeframe}
-            chartId="main"
-          />
-          {/* Price Chart with Candlesticks */}
-          <div className="h-3/4 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="hsl(var(--chart-grid))" 
-                  opacity={0.3}
-                />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={10}
-                  tickLine={false}
-                  axisLine={false}
-                  height={20}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={12}
-                  tickLine={false}
-                  axisLine={false}
-                  domain={['dataMin - 0.5', 'dataMax + 0.5']}
-                  tickFormatter={(value) => `$${value.toFixed(2)}`}
-                />
-                <Tooltip content={<CustomTooltip />} />
-                
-                {/* Custom candlesticks overlay */}
-                <Bar 
-                  dataKey="close" 
-                  shape={(props: any) => {
-                    const { payload, x, y, width, height } = props;
-                    if (!payload) return null;
-                    
-                    const isGreen = payload.close >= payload.open;
-                    const color = isGreen ? 'hsl(var(--chart-positive))' : 'hsl(var(--chart-negative))';
-                    
-                    // Calculate positions for candlestick
-                    const chartMax = Math.max(...chartData.map(d => d.high));
-                    const chartMin = Math.min(...chartData.map(d => d.low));
-                    const priceRange = chartMax - chartMin;
-                    const yScale = height / priceRange;
-                    
-                    const highY = y - ((payload.high - chartMax) * yScale);
-                    const lowY = y - ((payload.low - chartMax) * yScale);
-                    const openY = y - ((payload.open - chartMax) * yScale);
-                    const closeY = y - ((payload.close - chartMax) * yScale);
-                    
-                    const bodyTop = Math.min(openY, closeY);
-                    const bodyHeight = Math.max(Math.abs(openY - closeY), 1);
-                    const wickX = x + width / 2;
-                    const bodyWidth = Math.max(width * 0.6, 2);
-                    const bodyX = x + (width - bodyWidth) / 2;
-                    
-                    return (
-                      <g>
-                        {/* High-Low wick */}
-                        <line
-                          x1={wickX}
-                          y1={highY}
-                          x2={wickX}
-                          y2={lowY}
-                          stroke={color}
-                          strokeWidth={1}
-                        />
-                        {/* Open-Close body */}
-                        <rect
-                          x={bodyX}
-                          y={bodyTop}
-                          width={bodyWidth}
-                          height={bodyHeight}
-                          fill={isGreen ? color : 'transparent'}
-                          stroke={color}
-                          strokeWidth={1}
-                        />
-                      </g>
-                    );
-                  }}
-                  fillOpacity={0}
-                />
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          {chartType !== 'tradingview' && (
+            <ChartDrawingTools
+              chartContainerRef={chartContainerRef}
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              zoomLevel={zoomLevel}
+              symbol={symbol}
+              timeframe={timeframe}
+              chartId="main"
+            />
+          )}
           
-          {/* Volume Chart */}
-          <div className="h-1/4 w-full border-t border-border">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
-                <CartesianGrid 
-                  strokeDasharray="3 3" 
-                  stroke="hsl(var(--chart-grid))" 
-                  opacity={0.2}
-                />
-                <XAxis 
-                  dataKey="time" 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={8}
-                  tickLine={false}
-                  axisLine={false}
-                />
-                <YAxis 
-                  stroke="hsl(var(--muted-foreground))"
-                  fontSize={8}
-                  tickLine={false}
-                  axisLine={false}
-                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
-                />
-                
-                {/* Volume bars */}
-                <Bar dataKey="volume" opacity={0.6}>
-                  {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.close >= entry.open ? 'hsl(var(--chart-positive))' : 'hsl(var(--chart-negative))'} 
-                    />
-                  ))}
-                </Bar>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Chart Content */}
+          {chartType === 'tradingview' ? (
+            renderTradingViewChart()
+          ) : chartType === 'line' ? (
+            renderLineChart()
+          ) : (
+            <>
+              {/* Price Chart with Candlesticks */}
+              <div className="h-3/4 w-full">
+                <ChartContainer config={chartConfig} className="h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke="hsl(var(--chart-grid))" 
+                        opacity={0.3}
+                      />
+                      <XAxis 
+                        dataKey="time" 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        height={20}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={12}
+                        tickLine={false}
+                        axisLine={false}
+                        domain={['dataMin - 0.5', 'dataMax + 0.5']}
+                        tickFormatter={(value) => `$${value.toFixed(2)}`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      
+                      {/* Custom candlesticks overlay */}
+                      <Bar 
+                        dataKey="close" 
+                        shape={(props: any) => {
+                          const { payload, x, y, width, height } = props;
+                          if (!payload) return null;
+                          
+                          const isGreen = payload.close >= payload.open;
+                          const color = isGreen ? 'hsl(var(--chart-positive))' : 'hsl(var(--chart-negative))';
+                          
+                          // Calculate positions for candlestick
+                          const chartMax = Math.max(...chartData.map(d => d.high));
+                          const chartMin = Math.min(...chartData.map(d => d.low));
+                          const priceRange = chartMax - chartMin;
+                          const yScale = height / priceRange;
+                          
+                          const highY = y - ((payload.high - chartMax) * yScale);
+                          const lowY = y - ((payload.low - chartMax) * yScale);
+                          const openY = y - ((payload.open - chartMax) * yScale);
+                          const closeY = y - ((payload.close - chartMax) * yScale);
+                          
+                          const bodyTop = Math.min(openY, closeY);
+                          const bodyHeight = Math.max(Math.abs(openY - closeY), 1);
+                          const wickX = x + width / 2;
+                          const bodyWidth = Math.max(width * 0.6, 2);
+                          const bodyX = x + (width - bodyWidth) / 2;
+                          
+                          return (
+                            <g>
+                              {/* High-Low wick */}
+                              <line
+                                x1={wickX}
+                                y1={highY}
+                                x2={wickX}
+                                y2={lowY}
+                                stroke={color}
+                                strokeWidth={1}
+                              />
+                              {/* Open-Close body */}
+                              <rect
+                                x={bodyX}
+                                y={bodyTop}
+                                width={bodyWidth}
+                                height={bodyHeight}
+                                fill={isGreen ? color : 'transparent'}
+                                stroke={color}
+                                strokeWidth={1}
+                              />
+                            </g>
+                          );
+                        }}
+                        fillOpacity={0}
+                      />
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+              
+              {/* Volume Chart */}
+              <div className="h-1/4 w-full border-t border-border">
+                <ChartContainer config={chartConfig} className="h-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ComposedChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 20 }}>
+                      <CartesianGrid 
+                        strokeDasharray="3 3" 
+                        stroke="hsl(var(--chart-grid))" 
+                        opacity={0.2}
+                      />
+                      <XAxis 
+                        dataKey="time" 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={8}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        stroke="hsl(var(--muted-foreground))"
+                        fontSize={8}
+                        tickLine={false}
+                        axisLine={false}
+                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`}
+                      />
+                      <Tooltip content={<CustomTooltip />} />
+                      
+                      {/* Volume bars */}
+                      <Bar dataKey="volume" opacity={0.6}>
+                        {chartData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={entry.close >= entry.open ? 'hsl(var(--chart-positive))' : 'hsl(var(--chart-negative))'} 
+                          />
+                        ))}
+                      </Bar>
+                    </ComposedChart>
+                  </ResponsiveContainer>
+                </ChartContainer>
+              </div>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>
