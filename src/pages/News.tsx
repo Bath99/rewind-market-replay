@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, TrendingUp, AlertTriangle, Building, RefreshCw, Clock } from "lucide-react";
+import { Calendar, TrendingUp, AlertTriangle, Building, RefreshCw, Clock, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import { NewsService, NewsItem, EconomicEvent } from "@/services/newsService";
@@ -15,6 +15,7 @@ const initialNewsItems: NewsItem[] = [
     source: "Reuters",
     category: "Central Banking",
     impact: "high",
+    url: "https://www.reuters.com/business/finance/federal-reserve-interest-rate-decision",
     published: new Date(Date.now() - 2 * 60 * 60 * 1000)
   },
   {
@@ -25,6 +26,7 @@ const initialNewsItems: NewsItem[] = [
     source: "Bloomberg",
     category: "Earnings",
     impact: "high",
+    url: "https://www.bloomberg.com/news/companies/nvda",
     published: new Date(Date.now() - 4 * 60 * 60 * 1000)
   },
   {
@@ -35,6 +37,7 @@ const initialNewsItems: NewsItem[] = [
     source: "Wall Street Journal",
     category: "Commodities",
     impact: "medium",
+    url: "https://www.wsj.com/articles/oil-prices-supply-concerns",
     published: new Date(Date.now() - 6 * 60 * 60 * 1000)
   }
 ];
@@ -151,32 +154,40 @@ const News = () => {
             
             <div className="space-y-4">
               {newsItems.map((item) => (
-                <Card key={item.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg leading-tight hover:text-primary transition-colors">
-                          {item.title}
-                        </CardTitle>
-                        <CardDescription className="mt-2">
-                          {item.description}
-                        </CardDescription>
+                <Card key={item.id} className="hover:shadow-lg transition-all duration-300 cursor-pointer group">
+                  <a 
+                    href={item.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <CardHeader className="pb-3">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors flex items-center gap-2">
+                            {item.title}
+                            <ExternalLink className="h-4 w-4 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </CardTitle>
+                          <CardDescription className="mt-2">
+                            {item.description}
+                          </CardDescription>
+                        </div>
+                        <Badge className={`${getImpactColor(item.impact)} flex items-center gap-1 shrink-0`}>
+                          {getImpactIcon(item.impact)}
+                          {item.impact}
+                        </Badge>
                       </div>
-                      <Badge className={`${getImpactColor(item.impact)} flex items-center gap-1 shrink-0`}>
-                        {getImpactIcon(item.impact)}
-                        {item.impact}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="flex items-center justify-between text-sm text-muted-foreground">
-                      <span className="font-medium">{item.source}</span>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline">{item.category}</Badge>
-                        <span>{item.time}</span>
+                    </CardHeader>
+                    <CardContent className="pt-0">
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <span className="font-medium">{item.source}</span>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">{item.category}</Badge>
+                          <span>{item.time}</span>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
+                    </CardContent>
+                  </a>
                 </Card>
               ))}
             </div>
@@ -212,18 +223,18 @@ const News = () => {
                               />
                               <h3 className="font-semibold text-foreground">{event.event}</h3>
                             </div>
-                            <div className="grid grid-cols-3 gap-4 text-xs text-muted-foreground">
-                              <div>
-                                <span className="font-medium">Actual:</span>
-                                <span className="ml-1 font-mono text-foreground">{event.actual}</span>
+                            <div className="space-y-2 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-muted-foreground">Actual:</span>
+                                <span className="font-mono text-foreground font-bold">{event.actual}</span>
                               </div>
-                              <div>
-                                <span className="font-medium">Est:</span>
-                                <span className="ml-1 font-mono">{event.estimate}</span>
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-muted-foreground">Est:</span>
+                                <span className="font-mono text-muted-foreground">{event.estimate}</span>
                               </div>
-                              <div>
-                                <span className="font-medium">Prev:</span>
-                                <span className="ml-1 font-mono">{event.previous}</span>
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-muted-foreground">Prev:</span>
+                                <span className="font-mono text-muted-foreground">{event.previous}</span>
                               </div>
                             </div>
                           </div>

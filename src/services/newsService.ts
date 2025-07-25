@@ -40,6 +40,7 @@ export class NewsService {
         source: "Bloomberg Economics",
         category: "Monetary Policy",
         impact: "high",
+        url: "https://www.bloomberg.com/news/articles/2024/07/25/fed-officials-signal-cautious-approach",
         published: new Date(currentTime.getTime() - 60 * 60 * 1000)
       },
       {
@@ -50,6 +51,7 @@ export class NewsService {
         source: "Bloomberg Economics",
         category: "Employment",
         impact: "high",
+        url: "https://www.bloomberg.com/news/articles/2024/07/25/us-jobless-claims-drop-beats-estimates",
         published: new Date(currentTime.getTime() - 2 * 60 * 60 * 1000)
       },
       {
@@ -60,6 +62,7 @@ export class NewsService {
         source: "Bloomberg Economics",
         category: "Manufacturing",
         impact: "medium",
+        url: "https://www.bloomberg.com/news/articles/2024/07/25/manufacturing-pmi-beats-expectations",
         published: new Date(currentTime.getTime() - 3 * 60 * 60 * 1000)
       },
       {
@@ -70,6 +73,7 @@ export class NewsService {
         source: "Bloomberg Economics",
         category: "Bonds",
         impact: "medium",
+        url: "https://www.bloomberg.com/news/articles/2024/07/25/treasury-yields-rise-strong-data",
         published: new Date(currentTime.getTime() - 4 * 60 * 60 * 1000)
       },
       {
@@ -80,6 +84,7 @@ export class NewsService {
         source: "Bloomberg Economics",
         category: "Consumer",
         impact: "medium",
+        url: "https://www.bloomberg.com/news/articles/2024/07/25/consumer-confidence-reaches-new-high",
         published: new Date(currentTime.getTime() - 5 * 60 * 60 * 1000)
       }
     ];
